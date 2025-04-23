@@ -17,6 +17,8 @@ package simpleschema
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseMarkers(t *testing.T) {
@@ -49,6 +51,24 @@ func TestParseMarkers(t *testing.T) {
 			input:   "=value",
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name:  "empty marker value in middle",
+			input: "required description=\"intentionally empty\"",
+			want: []*Marker{
+				{MarkerType: MarkerTypeRequired, Key: "required", Value: ""},
+				{MarkerType: MarkerTypeDescription, Key: "description", Value: "intentionally empty"},
+			},
+			wantErr: false,
+		},
+		{
+			name:  "empty marker value at the end",
+			input: "description=\"intentionally empty\" required",
+			want: []*Marker{
+				{MarkerType: MarkerTypeDescription, Key: "description", Value: "intentionally empty"},
+				{MarkerType: MarkerTypeRequired, Key: "required", Value: ""},
+			},
+			wantErr: false,
 		},
 		{
 			name:  "Simple markers",
@@ -134,6 +154,7 @@ func TestParseMarkers(t *testing.T) {
 				t.Errorf("parseMarkers() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			assert.Equal(t, tt.want, got)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseMarkers() = %v, want %v", got, tt.want)
 			}

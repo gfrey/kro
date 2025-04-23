@@ -433,6 +433,20 @@ func TestBuildOpenAPISchema(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Required Marker empty value handling",
+			obj: map[string]interface{}{
+				"req_1": "string | required",
+			},
+			want: &extv1.JSONSchemaProps{
+				Type: "object",
+				Properties: map[string]extv1.JSONSchemaProps{
+					"req_1": {Type: "string"},
+				},
+				Required: []string{"req_1"},
+			},
+			wantErr: false,
+		},
+		{
 			name: "Required Marker handling",
 			obj: map[string]interface{}{
 				"req_1": "string | required=true",
@@ -471,6 +485,7 @@ func TestApplyMarkers_Required(t *testing.T) {
 		required bool
 		err      error
 	}{
+		{"", true, nil},
 		{"true", true, nil},
 		{"True", true, nil},
 		{"TRUE", true, nil},

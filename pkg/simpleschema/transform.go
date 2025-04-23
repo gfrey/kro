@@ -192,6 +192,9 @@ func (tf *transformer) applyMarkers(schema *extv1.JSONSchemaProps, markers []*Ma
 	for _, marker := range markers {
 		switch marker.MarkerType {
 		case MarkerTypeRequired:
+			if marker.Value == "" { // empty marker value means required
+				marker.Value = "true"
+			}
 			switch isRequired, err := strconv.ParseBool(marker.Value); {
 			case err != nil:
 				return fmt.Errorf("failed to parse required marker value: %w", err)

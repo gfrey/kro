@@ -77,27 +77,33 @@ type Marker struct {
 // parseMarker parses a marker string and returns a `Marker` struct.
 // The marker string should be in the format `marker=value`.
 // parseMarkers parses a string of markers and returns a slice of Marker structs
-func parseMarkers(markers string) ([]*Marker, error) {
-	var result []*Marker
+func parseMarkers(markers string) (result []*Marker, err error) {
 	var currentMarker *Marker
 	var inQuotes bool
 	var bracketCount int
 	var buffer strings.Builder
 	var escaped bool
 
+	newMarker := func() (*Marker, error) {
+		key := strings.TrimSpace(buffer.String())
+		if key == "" {
+			return nil, fmt.Errorf("empty marker key")
+		}
+		buffer.Reset()
+		markerType, err := markerTypeFromString(key)
+		if err != nil {
+			return nil, fmt.Errorf("invalid marker key '%s': %v", key, err)
+		}
+		return &Marker{MarkerType: markerType, Key: key}, nil
+	}
+
 	for _, char := range markers {
 		switch {
 		case char == '=' && currentMarker == nil && !inQuotes && bracketCount == 0:
-			key := strings.TrimSpace(buffer.String())
-			if key == "" {
-				return nil, fmt.Errorf("empty marker key")
-			}
-			markerType, err := markerTypeFromString(key)
+			currentMarker, err = newMarker()
 			if err != nil {
-				return nil, fmt.Errorf("invalid marker key '%s': %v", key, err)
+				return nil, err
 			}
-			currentMarker = &Marker{MarkerType: markerType, Key: key}
-			buffer.Reset()
 		case char == '"' && !escaped:
 			inQuotes = !inQuotes
 			buffer.WriteRune(char)
@@ -114,11 +120,19 @@ func parseMarkers(markers string) ([]*Marker, error) {
 				return nil, fmt.Errorf("unmatched closing bracket/brace")
 			}
 		case unicode.IsSpace(char) && !inQuotes && bracketCount == 0:
-			if currentMarker != nil {
+			switch {
+			case currentMarker == nil && buffer.Len() > 0:
+				currentMarker, err = newMarker()
+				if err != nil {
+					return nil, err
+				}
+				fallthrough
+			case currentMarker != nil:
 				currentMarker.Value = processValue(buffer.String())
 				result = append(result, currentMarker)
 				currentMarker = nil
 				buffer.Reset()
+			default: // ignore
 			}
 		default:
 			if escaped && inQuotes {
@@ -128,6 +142,12 @@ func parseMarkers(markers string) ([]*Marker, error) {
 		}
 	}
 
+	if currentMarker == nil && buffer.Len() > 0 {
+		currentMarker, err = newMarker()
+		if err != nil {
+			return nil, err
+		}
+	}
 	if currentMarker != nil {
 		currentMarker.Value = processValue(buffer.String())
 		result = append(result, currentMarker)
