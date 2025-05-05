@@ -777,7 +777,6 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 	// We also want to allow users to refer to the instance spec in their expressions.
 	resourceNames = append(resourceNames, "schema")
 	resourceNames = append(resourceNames, "each")
-	conditionFieldNames := []string{"schema"}
 
 	env, err := krocel.DefaultEnvironment(krocel.WithResourceIDs(resourceNames))
 	if err != nil {
