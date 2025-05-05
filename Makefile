@@ -23,6 +23,8 @@ ifeq ($(DIFF), 1)
     GIT_TREESTATE = "dirty"
 endif
 
+# TODO (gfrey 20250505) removed the escaped quotes from the $(GIT_TREESTATE).
+
 LDFLAGS="-buildid= -X sigs.k8s.io/release-utils/version.gitVersion=$(GIT_VERSION) \
         -X sigs.k8s.io/release-utils/version.gitCommit=$(GIT_HASH) \
         -X sigs.k8s.io/release-utils/version.gitTreeState=$(GIT_TREESTATE) \
@@ -265,7 +267,7 @@ ko-apply: ko
 
 ## CLI
 .PHONY: cli
-cli: 
+cli:
 	go build -o bin/kro cmd/cli/main.go
 	sudo mv bin/kro /usr/local/bin
 	@echo "CLI built successfully"

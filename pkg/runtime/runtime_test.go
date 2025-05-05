@@ -2658,6 +2658,14 @@ func (m *mockResource) Unstructured() *unstructured.Unstructured {
 	return m.obj
 }
 
+func (m *mockResource) IsCollection() bool {
+	return false
+}
+
+func (m *mockResource) GetForEachExpression() string {
+	return ""
+}
+
 type mockResourceOption func(*mockResource)
 
 /* func withGVR(group, version, resource string) mockResourceOption {
