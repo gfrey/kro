@@ -892,7 +892,7 @@ func ensureResourceExpressions(env *cel.Env, context map[string]interface{}, res
 		for _, expression := range resourceVariable.Expressions {
 			_, err := ensureExpression(env, expression, []string{resource.id}, context)
 			if err != nil {
-				return fmt.Errorf("failed to dry-run expression %s: %w", expression, err)
+				return fmt.Errorf("failed to ensure expression %s: %w", expression, err)
 			}
 		}
 	}
