@@ -778,7 +778,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 	}
 
 	// create includeWhenContext
-	includeWhenContext := map[string]*Resource{}
+	includeWhenContext := map[string]interface{}{}
 	// For now, we will only support the instance context for includeWhen expressions.
 	// With this decision, we will decide on creation time and update time
 	// If we'll be creating resources or not
@@ -789,7 +789,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 	}
 
 	// create expressionsContext
-	expressionContext := map[string]*Resource{}
+	expressionContext := map[string]interface{}{}
 	// add instance spec to the context
 	expressionContext["schema"] = &Resource{
 		emulatedObject: &unstructured.Unstructured{
@@ -893,7 +893,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 
 // ensureResourceExpressions validates the CEL expressions in the resource
 // against the resources defined in the resource graph definition.
-func ensureResourceExpressions(env *cel.Env, context map[string]*Resource, resource *Resource) error {
+func ensureResourceExpressions(env *cel.Env, context map[string]interface{}, resource *Resource) error {
 	// We need to validate the CEL expressions in the resource.
 	for _, resourceVariable := range resource.variables {
 		for _, expression := range resourceVariable.Expressions {
@@ -921,7 +921,7 @@ func ensureReadyWhenExpressions(resource *Resource) error {
 			delete(resourceEmulatedCopy.Object, "apiVersion")
 			delete(resourceEmulatedCopy.Object, "kind")
 		}
-		context := map[string]*Resource{}
+		context := map[string]interface{}{}
 		context[resource.id] = &Resource{
 			emulatedObject: resourceEmulatedCopy,
 		}
@@ -938,7 +938,7 @@ func ensureReadyWhenExpressions(resource *Resource) error {
 }
 
 // ensureIncludeWhenExpressions validates the includeWhen expressions in the resource
-func ensureIncludeWhenExpressions(env *cel.Env, context map[string]*Resource, resource *Resource) error {
+func ensureIncludeWhenExpressions(env *cel.Env, context map[string]interface{}, resource *Resource) error {
 	// We need to validate the CEL expressions in the resource.
 	for _, expression := range resource.includeWhenExpressions {
 		output, err := ensureExpression(env, expression, []string{resource.id}, context)
@@ -953,7 +953,7 @@ func ensureIncludeWhenExpressions(env *cel.Env, context map[string]*Resource, re
 }
 
 // ensureExpression validates the CEL expression in the context of the resources
-func ensureExpression(env *cel.Env, expression string, resources []string, context map[string]*Resource) (ref.Val, error) {
+func ensureExpression(env *cel.Env, expression string, resources []string, context map[string]interface{}) (ref.Val, error) {
 	err := validateCELExpressionContext(env, expression, resources)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate expression %s: %w", expression, err)
