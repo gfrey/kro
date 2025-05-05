@@ -478,7 +478,9 @@ func (rt *ResourceGraphDefinitionRuntime) evaluateDynamicVariables() error {
 			for _, dep := range variable.Dependencies {
 				// If the dependency is a collection, we need to
 				// get the collection items and set them as a list in the context
-				if rt.resources[dep].IsCollection() {
+				// TODO (gfrey 20250505) Added the `found` bit, as there is a
+				//                       test where this raised a NPE.
+				if res, found := rt.resources[dep]; found && res.IsCollection() {
 					collectionItems, err := rt.evalForEachExpression(dep)
 					if err != nil {
 						return nil
