@@ -789,17 +789,6 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 		delete(instanceEmulatedCopy.Object, "status")
 	}
 
-	// create includeWhenContext
-	includeWhenContext := map[string]interface{}{}
-	// For now, we will only support the instance context for includeWhen expressions.
-	// With this decision, we will decide on creation time and update time
-	// If we'll be creating resources or not
-	includeWhenContext["schema"] = &Resource{
-		emulatedObject: &unstructured.Unstructured{
-			Object: instanceEmulatedCopy.Object,
-		},
-	}
-
 	// create expressionsContext
 	expressionContext := map[string]interface{}{}
 	// add instance spec to the context
@@ -819,17 +808,8 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 		// exclude resource from the context
 		delete(expressionContext, resource.id)
 
-		// create context
-		context := map[string]interface{}{}
-		for resourceName, contextResource := range resources {
-			// exclude the resource we are validating
-			if resourceName != resource.id {
-				context[resourceName] = contextResource
-			}
-		}
-
 		// add instance spec to the context
-		context["schema"] = &Resource{
+		expressionContext["schema"] = &Resource{
 			emulatedObject: &unstructured.Unstructured{
 				Object: instanceEmulatedCopy.Object,
 			},
@@ -840,7 +820,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 			if err != nil {
 				return fmt.Errorf("failed to validate forEach expression context: '%s' %w", resource.forEachExpression, err)
 			}
-			emulatedForEach, err := dryRunExpression(env, resource.forEachExpression, context)
+			emulatedForEach, err := dryRunExpression(env, resource.forEachExpression, expressionContext)
 			if err != nil {
 				return fmt.Errorf("failed to dry-run forEach expression %s: %w", resource.forEachExpression, err)
 			}
@@ -856,7 +836,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 			switch m := nativeType.(type) {
 			case map[string]interface{}:
 				for k, v := range m {
-					context["each"] = map[string]interface{}{
+					expressionContext["each"] = map[string]interface{}{
 						"key":    k,
 						"value":  v,
 						"index":  0,
@@ -867,7 +847,7 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 				}
 			case []interface{}:
 				for _, v := range m {
-					context["each"] = map[string]interface{}{
+					expressionContext["each"] = map[string]interface{}{
 						"key":    0,
 						"value":  v,
 						"index":  0,
@@ -879,8 +859,6 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 			}
 		}
 
-		fmt.Println("context", context)
-
 		err := ensureResourceExpressions(env, expressionContext, resource)
 		if err != nil {
 			return fmt.Errorf("failed to ensure resource %s expressions: %w", resource.id, err)
@@ -891,13 +869,16 @@ func validateResourceCELExpressions(resources map[string]*Resource, instance *Re
 			return fmt.Errorf("failed to ensure resource %s readyWhen expressions: %w", resource.id, err)
 		}
 
-		err = ensureIncludeWhenExpressions(env, includeWhenContext, resource)
+		// include the resource back to the context
+		expressionContext[resource.id] = resource
+
+		// It is fine to reference the current resource in the includeWhen expression.
+		err = ensureIncludeWhenExpressions(env, expressionContext, resource)
 		if err != nil {
 			return fmt.Errorf("failed to ensure resource %s includeWhen expressions: %w", resource.id, err)
 		}
 
-		// include the resource back to the context
-		expressionContext[resource.id] = resource
+		// TODO (gfrey 20250505) Should we get rid of the `each` key from the expressionContext if in there?
 	}
 
 	return nil
